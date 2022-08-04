@@ -2,15 +2,15 @@ const assert = require('assert');
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 const web3 = new Web3(ganache.provider());
-const { interface, bytecode } = require('../compile');
+const { abi, evm } = require('../compile');
 
 let lottery;
 let accounts;
 
 beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
-    lottery = await new web3.eth.Contract(JSON.parse(interface))
-        .deploy({ data: bytecode })
+    lottery = await new web3.eth.Contract(abi)
+        .deploy({ data: evm.bytecode.object })
         .send({ from: accounts[0], gas: '1000000' });
 });
 
@@ -98,6 +98,7 @@ describe('Lottery Contract', () => {
 
         const finalBalance = await web3.eth.getBalance(accounts[0]);
         const difference = finalBalance - initialBalance;
+        const winner = await lottery.methods.latestWinner().call();
 
         //為什麼不是2以太，因為有些拿去付GAS錢了
         assert(difference > web3.utils.toWei('1.8', 'ether'));
@@ -106,6 +107,7 @@ describe('Lottery Contract', () => {
             from: accounts[0]
         });
 
+        assert.equal(accounts[0], winner);
         assert.equal(0, players.length);
 
     });
